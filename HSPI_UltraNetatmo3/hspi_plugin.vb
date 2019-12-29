@@ -140,14 +140,16 @@ Module hspi_plugin
               '
               ' Update the Modules Count
               '
-              Dim module_count As Integer = Device.modules.Count
-              If module_count >= 0 Then
-                Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Modules")
-                Dim dv_name As String = "Module Count"
-                Dim dv_type As String = "Netatmo Modules"
+              If Not IsNothing(Device.modules) Then
+                Dim module_count As Integer = Device.modules.Count
+                If module_count >= 0 Then
+                  Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Modules")
+                  Dim dv_name As String = "Module Count"
+                  Dim dv_type As String = "Netatmo Modules"
 
-                GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
-                SetDeviceValue(dv_addr, module_count)
+                  GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
+                  SetDeviceValue(dv_addr, module_count)
+                End If
               End If
 
               '
@@ -320,266 +322,270 @@ Module hspi_plugin
               ' Process device modules
               '
               Dim Modules As List(Of hspi_netatmo_api.DeviceModule) = Device.modules
-              For Each [Module] In Modules
 
-                dv_root_addr = [Module]._id
-                dv_root_type = [Module].type
-                dv_root_name = String.Format("{0} [{1}]", Device.station_name, [Module].module_name)
+              If Not Modules Is Nothing Then
+                For Each [Module] In Modules
 
-                '
-                ' Update the Battery Level
-                '
-                Dim Battery As Integer = [Module].battery_vp
-                If Battery > 0 Then
-                  If Regex.IsMatch(dv_root_type, "NAModule1|NAModule2|NAModule3") = True Then
-                    Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Battery-Outdoor")
-                    Dim dv_name As String = "Battery"
-                    Dim dv_type As String = "Netatmo Battery-Outdoor"
+                  dv_root_addr = [Module]._id
+                  dv_root_type = [Module].type
+                  dv_root_name = String.Format("{0} [{1}]", Device.station_name, [Module].module_name)
 
-                    GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
-                    SetDeviceValue(dv_addr, Battery)
-                  Else
-                    Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Battery-Indoor")
-                    Dim dv_name As String = "Battery"
-                    Dim dv_type As String = "Netatmo Battery-Indoor"
+                  '
+                  ' Update the Battery Level
+                  '
+                  Dim Battery As Integer = [Module].battery_vp
+                  If Battery > 0 Then
+                    If Regex.IsMatch(dv_root_type, "NAModule1|NAModule2|NAModule3") = True Then
+                      Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Battery-Outdoor")
+                      Dim dv_name As String = "Battery"
+                      Dim dv_type As String = "Netatmo Battery-Outdoor"
 
-                    GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
-                    SetDeviceValue(dv_addr, Battery)
-                  End If
-                End If
+                      GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
+                      SetDeviceValue(dv_addr, Battery)
+                    Else
+                      Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Battery-Indoor")
+                      Dim dv_name As String = "Battery"
+                      Dim dv_type As String = "Netatmo Battery-Indoor"
 
-                '
-                ' Update the rf_status
-                '
-                Dim RFStatus As Integer = [Module].rf_status
-                If RFStatus > 0 Then
-                  Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "RF-Status")
-                  Dim dv_name As String = "RF Status"
-                  Dim dv_type As String = "Netatmo RF"
-
-                  GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
-                  SetDeviceValue(dv_addr, RFStatus)
-                End If
-
-                '
-                ' Update the Dashboard Data
-                '
-                Dim ModuleDashboardData As hspi_netatmo_api.ModuleDashboardData = [Module].dashboard_data
-
-                If Not ModuleDashboardData Is Nothing Then
-
-                  Dim time_utc As Long = ModuleDashboardData.time_utc
-                  If time_utc > 0 Then
-                    Dim time_now As Long = ConvertDateTimeToEpoch(DateTime.Now)
-                    Dim dv_value As Integer = time_now - time_utc
-                    dv_value = dv_value / 60
-
-                    Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "LastUpdate")
-                    Dim dv_name As String = "Last Update"
-                    Dim dv_type As String = "Netatmo Update"
-
-                    GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
-                    SetDeviceValue(dv_addr, dv_value)
+                      GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
+                      SetDeviceValue(dv_addr, Battery)
+                    End If
                   End If
 
-                  For Each data_type As String In [Module].data_type
+                  '
+                  ' Update the rf_status
+                  '
+                  Dim RFStatus As Integer = [Module].rf_status
+                  If RFStatus > 0 Then
+                    Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "RF-Status")
+                    Dim dv_name As String = "RF Status"
+                    Dim dv_type As String = "Netatmo RF"
 
-                    Select Case data_type
-                      Case "Temperature"
-                        Dim Temperature As Double = ModuleDashboardData.Temperature
-                        If Temperature > -999 Then
-                          If gTempUnit = 1 Then Temperature = (Temperature * 1.8) + 32
+                    GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
+                    SetDeviceValue(dv_addr, RFStatus)
+                  End If
 
-                          Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Temperature")
-                          Dim dv_name As String = "Temperature"
-                          Dim dv_type As String = "Netatmo Temperature"
+                  '
+                  ' Update the Dashboard Data
+                  '
+                  Dim ModuleDashboardData As hspi_netatmo_api.ModuleDashboardData = [Module].dashboard_data
 
-                          GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
-                          SetDeviceValue(dv_addr, Temperature)
-                        End If
+                  If Not ModuleDashboardData Is Nothing Then
 
-                        Dim TemperatureMin As Double = ModuleDashboardData.min_temp
-                        If TemperatureMin > -999 Then
-                          If gTempUnit = 1 Then TemperatureMin = (TemperatureMin * 1.8) + 32
+                    Dim time_utc As Long = ModuleDashboardData.time_utc
+                    If time_utc > 0 Then
+                      Dim time_now As Long = ConvertDateTimeToEpoch(DateTime.Now)
+                      Dim dv_value As Integer = time_now - time_utc
+                      dv_value = dv_value / 60
 
-                          Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Temperature-Min")
-                          Dim dv_name As String = "Temperature Minimum"
-                          Dim dv_type As String = "Netatmo Temperature"
+                      Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "LastUpdate")
+                      Dim dv_name As String = "Last Update"
+                      Dim dv_type As String = "Netatmo Update"
 
-                          GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
-                          SetDeviceValue(dv_addr, TemperatureMin)
-                        End If
+                      GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
+                      SetDeviceValue(dv_addr, dv_value)
+                    End If
 
-                        Dim TemperatureMax As Double = ModuleDashboardData.max_temp
-                        If TemperatureMax > -999 Then
-                          If gTempUnit = 1 Then TemperatureMax = (TemperatureMax * 1.8) + 32
+                    For Each data_type As String In [Module].data_type
 
-                          Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Temperature-Max")
-                          Dim dv_name As String = "Temperature Maximum"
-                          Dim dv_type As String = "Netatmo Temperature"
+                      Select Case data_type
+                        Case "Temperature"
+                          Dim Temperature As Double = ModuleDashboardData.Temperature
+                          If Temperature > -999 Then
+                            If gTempUnit = 1 Then Temperature = (Temperature * 1.8) + 32
 
-                          GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
-                          SetDeviceValue(dv_addr, TemperatureMax)
-                        End If
+                            Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Temperature")
+                            Dim dv_name As String = "Temperature"
+                            Dim dv_type As String = "Netatmo Temperature"
 
-                        Dim TemperatureTend As String = ModuleDashboardData.temp_trend
-                        If TemperatureTend.Length > 0 Then
-                          Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Temperature-Trend")
-                          Dim dv_name As String = "Temperature Trend"
-                          Dim dv_type As String = "Netatmo Temperature"
+                            GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
+                            SetDeviceValue(dv_addr, Temperature)
+                          End If
 
-                          GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
+                          Dim TemperatureMin As Double = ModuleDashboardData.min_temp
+                          If TemperatureMin > -999 Then
+                            If gTempUnit = 1 Then TemperatureMin = (TemperatureMin * 1.8) + 32
 
-                          Dim dv_value As Integer = 0
-                          Select Case TemperatureTend.ToLower
-                            Case "up" : dv_value = 1
-                            Case "down" : dv_value = -1
-                            Case "stable" : dv_value = 0
-                          End Select
-                          SetDeviceValue(dv_addr, dv_value)
-                        End If
+                            Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Temperature-Min")
+                            Dim dv_name As String = "Temperature Minimum"
+                            Dim dv_type As String = "Netatmo Temperature"
 
-                      Case "Co2", "CO2"
-                        Dim Co2 As Integer = ModuleDashboardData.CO2
-                        If Co2 > 0 Then
-                          Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "CO2")
-                          Dim dv_name As String = "CO2"
-                          Dim dv_type As String = "Netatmo CO2"
+                            GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
+                            SetDeviceValue(dv_addr, TemperatureMin)
+                          End If
 
-                          GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
-                          SetDeviceValue(dv_addr, Co2)
-                        End If
+                          Dim TemperatureMax As Double = ModuleDashboardData.max_temp
+                          If TemperatureMax > -999 Then
+                            If gTempUnit = 1 Then TemperatureMax = (TemperatureMax * 1.8) + 32
 
-                      Case "Humidity"
-                        Dim Humidity As Integer = ModuleDashboardData.Humidity
-                        If Humidity > 0 Then
-                          Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Humidity")
-                          Dim dv_name As String = "Humidity"
-                          Dim dv_type As String = "Netatmo Humidity"
+                            Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Temperature-Max")
+                            Dim dv_name As String = "Temperature Maximum"
+                            Dim dv_type As String = "Netatmo Temperature"
 
-                          GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
-                          SetDeviceValue(dv_addr, Humidity)
-                        End If
+                            GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
+                            SetDeviceValue(dv_addr, TemperatureMax)
+                          End If
 
-                      Case "Rain"
-                        Dim Rain As Double = ModuleDashboardData.Rain
-                        If Rain >= 0 Then
-                          If gRainUnit = 1 Then Rain *= 0.03937  ' Convert from mm to inches
+                          Dim TemperatureTend As String = ModuleDashboardData.temp_trend
+                          If TemperatureTend.Length > 0 Then
+                            Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Temperature-Trend")
+                            Dim dv_name As String = "Temperature Trend"
+                            Dim dv_type As String = "Netatmo Temperature"
 
-                          Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Rain")
-                          Dim dv_name As String = "Rain - Last Reading"
-                          Dim dv_type As String = "Netatmo Rain"
+                            GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
 
-                          GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
-                          SetDeviceValue(dv_addr, Rain)
-                        End If
+                            Dim dv_value As Integer = 0
+                            Select Case TemperatureTend.ToLower
+                              Case "up" : dv_value = 1
+                              Case "down" : dv_value = -1
+                              Case "stable" : dv_value = 0
+                            End Select
+                            SetDeviceValue(dv_addr, dv_value)
+                          End If
 
-                        Dim RainHour As Double = ModuleDashboardData.sum_rain_1
-                        If RainHour >= 0 Then
-                          If gRainUnit = 1 Then RainHour *= 0.03937    ' Convert from mm to inches
+                        Case "Co2", "CO2"
+                          Dim Co2 As Integer = ModuleDashboardData.CO2
+                          If Co2 > 0 Then
+                            Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "CO2")
+                            Dim dv_name As String = "CO2"
+                            Dim dv_type As String = "Netatmo CO2"
 
-                          Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Rain-Hour")
-                          Dim dv_name As String = "Rain - Hour"
-                          Dim dv_type As String = "Netatmo Rain"
+                            GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
+                            SetDeviceValue(dv_addr, Co2)
+                          End If
 
-                          GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
-                          SetDeviceValue(dv_addr, RainHour)
-                        End If
+                        Case "Humidity"
+                          Dim Humidity As Integer = ModuleDashboardData.Humidity
+                          If Humidity > 0 Then
+                            Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Humidity")
+                            Dim dv_name As String = "Humidity"
+                            Dim dv_type As String = "Netatmo Humidity"
 
-                        Dim RainToday As Double = ModuleDashboardData.sum_rain_24
-                        If RainToday >= 0 Then
-                          If gRainUnit = 1 Then RainToday *= 0.03937   ' Convert from mm to inches
+                            GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
+                            SetDeviceValue(dv_addr, Humidity)
+                          End If
 
-                          Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Rain-Today")
-                          Dim dv_name As String = "Rain - Today"
-                          Dim dv_type As String = "Netatmo Rain"
+                        Case "Rain"
+                          Dim Rain As Double = ModuleDashboardData.Rain
+                          If Rain >= 0 Then
+                            If gRainUnit = 1 Then Rain *= 0.03937  ' Convert from mm to inches
 
-                          GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
-                          SetDeviceValue(dv_addr, RainToday)
-                        End If
-                      Case "Wind"
-                        Dim WindAngle As Integer = ModuleDashboardData.WindAngle
-                        If WindAngle >= 0 Then
+                            Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Rain")
+                            Dim dv_name As String = "Rain - Last Reading"
+                            Dim dv_type As String = "Netatmo Rain"
 
-                          Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Wind-Direction")
-                          Dim dv_name As String = "Wind Direction"
-                          Dim dv_type As String = "Netatmo Wind"
+                            GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
+                            SetDeviceValue(dv_addr, Rain)
+                          End If
 
-                          GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
-                          SetDeviceValue(dv_addr, GetWindDirectionValue(WindAngle))
-                        End If
+                          Dim RainHour As Double = ModuleDashboardData.sum_rain_1
+                          If RainHour >= 0 Then
+                            If gRainUnit = 1 Then RainHour *= 0.03937    ' Convert from mm to inches
 
-                        Dim WindStrength As Integer = ModuleDashboardData.WindStrength
-                        If WindStrength >= 0 Then
-                          If gWindUnit = 1 Then WindStrength *= 0.621371  ' Convert from km to mph
+                            Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Rain-Hour")
+                            Dim dv_name As String = "Rain - Hour"
+                            Dim dv_type As String = "Netatmo Rain"
 
-                          Select Case gWindUnit
-                            Case 0 ' kph (no conversion needed)
-                            Case 1 : WindStrength *= 0.621371             ' Convert from kph to mph
-                            Case 2 : WindStrength *= 0.277778             ' Convert from kph to ms
-                            Case 4 : WindStrength *= 0.539957             ' Convert from kph to knot
-                          End Select
+                            GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
+                            SetDeviceValue(dv_addr, RainHour)
+                          End If
 
-                          Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Wind-Strength")
-                          Dim dv_name As String = "Wind Strength"
-                          Dim dv_type As String = "Netatmo Wind"
+                          Dim RainToday As Double = ModuleDashboardData.sum_rain_24
+                          If RainToday >= 0 Then
+                            If gRainUnit = 1 Then RainToday *= 0.03937   ' Convert from mm to inches
 
-                          GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
-                          SetDeviceValue(dv_addr, WindStrength)
-                        End If
+                            Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Rain-Today")
+                            Dim dv_name As String = "Rain - Today"
+                            Dim dv_type As String = "Netatmo Rain"
 
-                        Dim GustAngle As Integer = ModuleDashboardData.GustAngle
-                        If GustAngle >= 0 Then
+                            GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
+                            SetDeviceValue(dv_addr, RainToday)
+                          End If
+                        Case "Wind"
+                          Dim WindAngle As Integer = ModuleDashboardData.WindAngle
+                          If WindAngle >= 0 Then
 
-                          Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Gust-Direction")
-                          Dim dv_name As String = "Gust Direction"
-                          Dim dv_type As String = "Netatmo Wind"
+                            Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Wind-Direction")
+                            Dim dv_name As String = "Wind Direction"
+                            Dim dv_type As String = "Netatmo Wind"
 
-                          GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
-                          SetDeviceValue(dv_addr, GetWindDirectionValue(GustAngle))
-                        End If
+                            GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
+                            SetDeviceValue(dv_addr, GetWindDirectionValue(WindAngle))
+                          End If
 
-                        Dim GustStrength As Integer = ModuleDashboardData.GustStrength
-                        If GustStrength >= 0 Then
-                          Select Case gWindUnit
-                            Case 0 ' kph (no conversion needed)
-                            Case 1 : GustStrength *= 0.621371             ' Convert from kph to mph
-                            Case 2 : GustStrength *= 0.277778             ' Convert from kph to ms
-                            Case 4 : GustStrength *= 0.539957             ' Convert from kph to knot
-                          End Select
+                          Dim WindStrength As Integer = ModuleDashboardData.WindStrength
+                          If WindStrength >= 0 Then
+                            If gWindUnit = 1 Then WindStrength *= 0.621371  ' Convert from km to mph
 
-                          Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Gust-Strength")
-                          Dim dv_name As String = "Gust Strength"
-                          Dim dv_type As String = "Netatmo Wind"
+                            Select Case gWindUnit
+                              Case 0 ' kph (no conversion needed)
+                              Case 1 : WindStrength *= 0.621371             ' Convert from kph to mph
+                              Case 2 : WindStrength *= 0.277778             ' Convert from kph to ms
+                              Case 4 : WindStrength *= 0.539957             ' Convert from kph to knot
+                            End Select
 
-                          GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
-                          SetDeviceValue(dv_addr, GustStrength)
-                        End If
+                            Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Wind-Strength")
+                            Dim dv_name As String = "Wind Strength"
+                            Dim dv_type As String = "Netatmo Wind"
 
-                        Dim MaxGustStrength As Integer = ModuleDashboardData.max_wind_str
-                        If MaxGustStrength >= 0 Then
-                          Select Case gWindUnit
-                            Case 0 ' kph (no conversion needed)
-                            Case 1 : MaxGustStrength *= 0.621371             ' Convert from kph to mph
-                            Case 2 : MaxGustStrength *= 0.277778             ' Convert from kph to ms
-                            Case 4 : MaxGustStrength *= 0.539957             ' Convert from kph to knot
-                          End Select
+                            GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
+                            SetDeviceValue(dv_addr, WindStrength)
+                          End If
 
-                          Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Gust-Strength-Max")
-                          Dim dv_name As String = "Gust Strength Maximum"
-                          Dim dv_type As String = "Netatmo Wind"
+                          Dim GustAngle As Integer = ModuleDashboardData.GustAngle
+                          If GustAngle >= 0 Then
 
-                          GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
-                          SetDeviceValue(dv_addr, MaxGustStrength)
-                        End If
+                            Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Gust-Direction")
+                            Dim dv_name As String = "Gust Direction"
+                            Dim dv_type As String = "Netatmo Wind"
 
-                    End Select
+                            GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
+                            SetDeviceValue(dv_addr, GetWindDirectionValue(GustAngle))
+                          End If
 
-                  Next
+                          Dim GustStrength As Integer = ModuleDashboardData.GustStrength
+                          If GustStrength >= 0 Then
+                            Select Case gWindUnit
+                              Case 0 ' kph (no conversion needed)
+                              Case 1 : GustStrength *= 0.621371             ' Convert from kph to mph
+                              Case 2 : GustStrength *= 0.277778             ' Convert from kph to ms
+                              Case 4 : GustStrength *= 0.539957             ' Convert from kph to knot
+                            End Select
 
-                End If
+                            Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Gust-Strength")
+                            Dim dv_name As String = "Gust Strength"
+                            Dim dv_type As String = "Netatmo Wind"
 
-              Next
+                            GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
+                            SetDeviceValue(dv_addr, GustStrength)
+                          End If
+
+                          Dim MaxGustStrength As Integer = ModuleDashboardData.max_wind_str
+                          If MaxGustStrength >= 0 Then
+                            Select Case gWindUnit
+                              Case 0 ' kph (no conversion needed)
+                              Case 1 : MaxGustStrength *= 0.621371             ' Convert from kph to mph
+                              Case 2 : MaxGustStrength *= 0.277778             ' Convert from kph to ms
+                              Case 4 : MaxGustStrength *= 0.539957             ' Convert from kph to knot
+                            End Select
+
+                            Dim dv_addr As String = String.Format("{0}-{1}", dv_root_addr, "Gust-Strength-Max")
+                            Dim dv_name As String = "Gust Strength Maximum"
+                            Dim dv_type As String = "Netatmo Wind"
+
+                            GetHomeSeerDevice(dv_root_name, dv_root_type, dv_root_addr, dv_name, dv_type, dv_addr)
+                            SetDeviceValue(dv_addr, MaxGustStrength)
+                          End If
+
+                      End Select
+
+                    Next
+
+                  End If
+
+                Next
+              End If
+
 
             Next
 
