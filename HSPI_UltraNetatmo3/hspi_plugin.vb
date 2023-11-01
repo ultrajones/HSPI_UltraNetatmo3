@@ -25,8 +25,8 @@ Module hspi_plugin
   Public HSDevices As New SortedList
 
   Public NetatmoAPI As hspi_netatmo_api
-  Public gAPIClientId As String = "53dbf41e1b7759ba878b4737"
-  Public gAPIClientSecret As String = "5EU6O4QJV9ITCjOgwnNfSdn3Ft"
+  Public gAPIClientId As String = "redacted"
+  Public gAPIClientSecret As String = "redacted"
   Public gAPIUsername As String = String.Empty
   Public gAPIPassword As String = String.Empty
   Public gAPIScope As String = "read_station read_homecoach"
